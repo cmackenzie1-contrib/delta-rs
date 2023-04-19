@@ -455,6 +455,35 @@ mod tests {
     use std::fs::File;
     use std::sync::Arc;
 
+
+    #[tokio::test]
+    async fn test_buffer_len() {
+        let table_dir = tempfile::tempdir().unwrap();
+        let schema = get_delta_schema();
+        let path = table_dir.path().to_str().unwrap().to_string();
+
+        let arrow_schema = <ArrowSchema as TryFrom<&Schema>>::try_from(&schema).unwrap();
+        let mut writer = JsonWriter::try_new(
+            path.clone(),
+            Arc::new(arrow_schema),
+            None,
+            None,
+        )
+        .unwrap();
+
+        let data = serde_json::json!(
+            {
+                "id" : "A",
+                "value": "test",
+                "modified": "2021-02-01"
+            }
+        );
+
+        writer.write(vec![data]).await.unwrap();
+     
+        assert_ne!(writer.buffer_len(), 0);
+    }
+
     #[tokio::test]
     async fn test_partition_not_written_to_parquet() {
         let table_dir = tempfile::tempdir().unwrap();
